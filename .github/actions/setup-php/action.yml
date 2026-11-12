@@ -1,0 +1,29 @@
+name: Set up PHP & Composer
+description: Install PHP 8.3 with the extensions Laravel needs, restore the Composer cache and install dependencies.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up PHP 8.3
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: bcmath, ctype, curl, dom, fileinfo, intl, mbstring, openssl, pcntl, pdo, pdo_pgsql, pgsql, rdkafka, redis, tokenizer, xml, zip
+        coverage: none
+        tools: composer:v2
+
+    - name: Locate Composer cache directory
+      id: composer-cache
+      shell: bash
+      run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-php8.3-composer-${{ hashFiles('composer.lock') }}
+        restore-keys: ${{ runner.os }}-php8.3-composer-
+
+    - name: Install Composer dependencies
+      shell: bash
+      run: composer install --no-interaction --no-progress --prefer-dist
