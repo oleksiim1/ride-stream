@@ -1,0 +1,22 @@
+{
+    "name": "ride-stream/location-ingest",
+    "description": "HTTP endpoint that accepts driver location updates and publishes them to Kafka.",
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\LocationIngest\\": "app/",
+            "Modules\\LocationIngest\\Database\\Factories\\": "database/factories/",
+            "Modules\\LocationIngest\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\LocationIngest\\Tests\\": "tests/"
+        }
+    }
+}

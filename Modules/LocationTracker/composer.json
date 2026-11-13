@@ -1,0 +1,22 @@
+{
+    "name": "ride-stream/location-tracker",
+    "description": "Consumes driver location updates from Kafka and keeps the latest position of each driver in Redis.",
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\LocationTracker\\": "app/",
+            "Modules\\LocationTracker\\Database\\Factories\\": "database/factories/",
+            "Modules\\LocationTracker\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\LocationTracker\\Tests\\": "tests/"
+        }
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "name": "LocationTracker",
+    "alias": "locationtracker",
+    "description": "Consumes driver location updates from Kafka and keeps the latest position of each driver in Redis.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\LocationTracker\\Providers\\LocationTrackerServiceProvider"
+    ],
+    "files": []
+}

@@ -8,7 +8,11 @@ parameters:
         - app
         - bootstrap/app.php
         - config
+        - Modules
         - database
         - routes
+
+    excludePaths:
+        - Modules/*/tests/*
 
     tmpDir: storage/framework/cache/phpstan
