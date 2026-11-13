@@ -1,0 +1,4 @@
+$kind: collection
+description: Driver location ingestion API. Run against `docker compose up`; set baseUrl in the environment.
+variables:
+  baseUrl: http://localhost:8000

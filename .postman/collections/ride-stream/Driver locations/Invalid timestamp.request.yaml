@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/driver-locations"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "driver_id": "drv_001",
+      "lat": 50.4501,
+      "lng": 30.5234,
+      "heading": 90,
+      "speed_kmh": 0,
+      "accuracy_m": 8,
+      "recorded_at": "not-a-date"
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.variables.set('recordedAt', new Date().toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('422 Unprocessable Entity', () => pm.response.to.have.status(422));
+      pm.test('error reported for recorded_at', () => pm.expect(pm.response.json().errors).to.have.property('recorded_at'));
+    language: text/javascript
+order: 6000
