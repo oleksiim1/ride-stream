@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Modules\LocationIngest\Tests\Feature\Api\V1;
 
 use Illuminate\Testing\TestResponse;
 use Junges\Kafka\Facades\Kafka;

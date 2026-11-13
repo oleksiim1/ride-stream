@@ -18,6 +18,25 @@ services:
       kafka-init:
         condition: service_completed_successfully
 
+  consumer:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${DOCKER_UID:-1000}
+        GID: ${DOCKER_GID:-1000}
+    command: php artisan kafka:consume-driver-locations
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+
   nginx:
     image: nginx:1.27-alpine
     ports:

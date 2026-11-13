@@ -1,15 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace Modules\LocationIngest\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\V1\StoreDriverLocationRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Junges\Kafka\Facades\Kafka;
 use Junges\Kafka\Message\Message;
+use Modules\LocationIngest\Http\Requests\Api\V1\StoreDriverLocationRequest;
 
-class DriverLocationController extends Controller
+class DriverLocationController
 {
     /**
      * Publish a driver location update to Kafka.

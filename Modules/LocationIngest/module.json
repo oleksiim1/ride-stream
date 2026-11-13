@@ -1,0 +1,11 @@
+{
+    "name": "LocationIngest",
+    "alias": "locationingest",
+    "description": "HTTP endpoint that accepts driver location updates and publishes them to Kafka.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\LocationIngest\\Providers\\LocationIngestServiceProvider"
+    ],
+    "files": []
+}
