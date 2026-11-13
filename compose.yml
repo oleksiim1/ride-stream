@@ -133,6 +133,17 @@ services:
       kafka:
         condition: service_healthy
 
+  redisinsight:
+    image: redis/redisinsight:2.66
+    ports:
+      - "127.0.0.1:${REDISINSIGHT_FORWARD_PORT:-5540}:5540"
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   kafka-data:
+  redisinsight-data:
