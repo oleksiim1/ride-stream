@@ -146,3 +146,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+
+## Module boundaries
+
+A module must never import classes from another module. Code used by more than one module goes in `app/Shared`; code used by only one module stays inside that module. Move code to `app/Shared` only when a second module actually needs it.

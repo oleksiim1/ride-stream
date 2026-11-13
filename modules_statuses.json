@@ -1,4 +1,5 @@
 {
     "LocationTracker": true,
-    "LocationIngest": true
+    "LocationIngest": true,
+    "LocationSimulator": true
 }

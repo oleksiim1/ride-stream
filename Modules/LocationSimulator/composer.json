@@ -1,0 +1,22 @@
+{
+    "name": "ride-stream/location-simulator",
+    "description": "Simulates drivers moving along Kyiv routes and publishes their locations to Kafka.",
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\LocationSimulator\\": "app/",
+            "Modules\\LocationSimulator\\Database\\Factories\\": "database/factories/",
+            "Modules\\LocationSimulator\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\LocationSimulator\\Tests\\": "tests/"
+        }
+    }
+}
