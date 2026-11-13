@@ -1,0 +1,9 @@
+# Use this workspace to collaborate
+workspace:
+  id: accd7a05-594a-4880-a04f-5535a4eab6f3
+
+localResources:
+  collections:
+    - ../.postman/collections/ride-stream
+  environments:
+    - ../.postman/environments/ride-stream local.environment.yaml
