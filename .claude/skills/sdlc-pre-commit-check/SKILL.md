@@ -5,7 +5,7 @@ description: Run the same checks as CI (Pint, Larastan, composer audit, PHPUnit)
 
 # Pre-commit check (mirrors `.github/workflows/ci.yml`)
 
-> **ASSUMPTION:** the repo has no `docker-compose.yml` yet. The service name `app` below is a placeholder. Once the compose file exists, replace `app` everywhere in this file with the real PHP service name, and confirm the postgres (PostGIS), redis and kafka services are started.
+> The PHP service in `compose.yml` is `app`. Make sure the `postgres` (PostGIS), `redis` and `kafka` services are healthy (`docker compose ps`) before running the checks.
 
 Define `RUN="docker compose exec -T app"`. If the stack is not running, ask before `docker compose up -d`.
 

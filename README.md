@@ -21,6 +21,20 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Running locally
+
+Requires Docker with Compose. Services: `app` (PHP 8.3-FPM), `nginx`, `postgres` (PostGIS), `redis` and `kafka` (KRaft). All ports bind to `127.0.0.1`.
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+docker compose exec app composer install
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate
+```
+
+The app is served at <http://localhost:8000>. Run any command inside the container with `docker compose exec app <command>`, and stop the stack with `docker compose down` (add `-v` to also delete the database volume). `.env` is gitignored; the defaults in `.env.example` are dummy values for local use only.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
