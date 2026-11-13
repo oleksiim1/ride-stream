@@ -1,0 +1,11 @@
+{
+    "name": "LocationSimulator",
+    "alias": "locationsimulator",
+    "description": "Simulates drivers moving along Kyiv routes and publishes their locations to Kafka.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\LocationSimulator\\Providers\\LocationSimulatorServiceProvider"
+    ],
+    "files": []
+}

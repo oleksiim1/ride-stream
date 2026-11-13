@@ -37,6 +37,25 @@ services:
       kafka-init:
         condition: service_completed_successfully
 
+  simulator:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${DOCKER_UID:-1000}
+        GID: ${DOCKER_GID:-1000}
+    command: php artisan simulator:drivers
+    restart: unless-stopped
+    profiles: ["simulator"]
+    stop_signal: SIGTERM
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+
   nginx:
     image: nginx:1.27-alpine
     ports:

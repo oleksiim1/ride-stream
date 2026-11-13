@@ -15,4 +15,9 @@ parameters:
     excludePaths:
         - Modules/*/tests/*
 
+    ignoreErrors:
+        -
+            identifier: larastan.noEnvCallsOutsideOfConfig
+            path: Modules/*/config/*
+
     tmpDir: storage/framework/cache/phpstan
