@@ -1,72 +1,188 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ride-stream
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+ride-stream is a simple Uber-like ride-hailing backend. It shows an event-driven architecture with Laravel, Kafka and Redis, all running in Docker.
 
-## About Laravel
+## Architecture
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Driver positions flow through the system like this:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```mermaid
+flowchart LR
+    client["HTTP client"]
+    subgraph ingest["LocationIngest"]
+        api["API<br/>POST /api/v1/driver-locations"]
+    end
+    subgraph sim["LocationSimulator"]
+        simulator["simulator:drivers"]
+    end
+    topic[["Kafka topic<br/>driver.location.updated"]]
+    subgraph tracker["LocationTracker"]
+        consumer["kafka:consume-driver-locations"]
+    end
+    redis[("Redis<br/>drivers:locations (geo)<br/>drivers:last_seen (zset)")]
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+    client -->|HTTP, 202 Accepted| api
+    api -->|publish, key = driver_id| topic
+    simulator -->|publish, key = driver_id| topic
+    topic -->|consume, group location-writers| consumer
+    consumer -->|GEOADD + ZADD| redis
+```
 
-## Running locally
+- **API** (`Modules/LocationIngest`): `POST /api/v1/driver-locations` validates a driver's coordinates and publishes them to Kafka, then returns `202 Accepted`.
+- **Kafka topic** `driver.location.updated`: 6 partitions, messages keyed by `driver_id`, so one driver's updates stay in order. The topic is created by the `kafka-init` Compose service.
+- **Consumer** (`Modules/LocationTracker`): the `kafka:consume-driver-locations` command reads the topic and writes to Redis. It skips malformed, invalid and stale (not newer than the last stored) messages.
+- **Redis**: holds each driver's current position and last-seen time (see [Redis data model](#redis-data-model)).
+- **Simulator** (`Modules/LocationSimulator`): moves several drivers along pre-fetched Kyiv routes and sends their positions. See the [simulator README](Modules/LocationSimulator/README.md) for options. It publishes straight to the Kafka topic, not through the HTTP API.
 
-Requires Docker with Compose. Services: `app` (PHP 8.3-FPM), `nginx`, `postgres` (PostGIS), `redis` and `kafka` (KRaft). All ports bind to `127.0.0.1`.
+The code is split into Laravel modules (`Modules/`). Code shared between modules lives in `app/Shared`.
+
+## Tech stack
+
+- PHP 8.3, Laravel 13, [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules)
+- Kafka 3.9 (KRaft, no ZooKeeper) with `mateusjunges/laravel-kafka`
+- Redis 7 (phpredis)
+- PostgreSQL 17 with PostGIS (configured, not used by the features yet)
+- Docker Compose, nginx, Kafka UI, RedisInsight
+- PHPUnit, Laravel Pint, Larastan, GitHub Actions
+
 
 ```bash
-cp .env.example .env
+git clone <your-fork-or-repo-url> ride-stream
+cd ride-stream
+cp .env.example .env            # PowerShell: Copy-Item .env.example .env
 docker compose up -d --build
 docker compose exec app composer install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
 
-The app is served at <http://localhost:8000>. Run any command inside the container with `docker compose exec app <command>`, and stop the stack with `docker compose down` (add `-v` to also delete the database volume). `.env` is gitignored; the defaults in `.env.example` are dummy values for local use only.
+The `consumer` service starts with the stack. The API is served at <http://localhost:8000>.
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Start the simulator (it only runs when you ask for it, through the `simulator` Compose profile):
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+docker compose --profile simulator up simulator
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Print simulated messages without Kafka:
 
-## Contributing
+```bash
+docker compose run --rm app php artisan simulator:drivers --dry-run --ticks=3
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Useful local URLs (all bound to `127.0.0.1`):
 
-## Code of Conduct
+| Service | URL |
+| --- | --- |
+| API | <http://localhost:8000> |
+| Kafka UI | <http://localhost:8082> |
+| RedisInsight | <http://localhost:5540> |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Stop the stack with `docker compose down` (add `-v` to delete volumes too). Host ports can be changed in `.env` (`APP_PORT`, `REDIS_FORWARD_PORT`, `KAFKA_FORWARD_PORT`, and so on).
 
-## Security Vulnerabilities
+## Redis data model
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Keys carry Laravel's default Redis prefix: `<app-name-slug>-database-`. With `APP_NAME=Laravel` it is `laravel-database-`.
 
-## License
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `laravel-database-drivers:locations` | Geo set (sorted set) | Current position of each driver. Member is the `driver_id`. The score is the geohash Redis computes from lng/lat. |
+| `laravel-database-drivers:last_seen` | Sorted set | Member is the `driver_id`. The score is the `recorded_at` time of the last stored update, in Unix milliseconds. Used to drop stale messages. |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Inspect them:
+
+```bash
+# Position of one driver (returns longitude, latitude)
+docker compose exec redis redis-cli GEOPOS laravel-database-drivers:locations drv_001
+
+# Last-seen time of one driver, in milliseconds
+docker compose exec redis redis-cli ZSCORE laravel-database-drivers:last_seen drv_001
+
+# All drivers with their last-seen time
+docker compose exec redis redis-cli ZRANGE laravel-database-drivers:last_seen 0 -1 WITHSCORES
+```
+
+## API reference
+
+### `POST /api/v1/driver-locations`
+
+Validates a location update and publishes it to Kafka. Nothing is stored by the API itself.
+
+Request body:
+
+| Field | Rules |
+| --- | --- |
+| `driver_id` | required, string, max 64 characters |
+| `lat` | required, number, -90 to 90 |
+| `lng` | required, number, -180 to 180 |
+| `heading` | required, integer, 0 to 359 |
+| `speed_kmh` | required, number, 0 or more |
+| `accuracy_m` | required, number, 0 or more |
+| `recorded_at` | required, date (stored as UTC, ISO 8601) |
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/driver-locations \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "driver_id": "drv_001",
+    "lat": 50.4501,
+    "lng": 30.5234,
+    "heading": 90,
+    "speed_kmh": 42.5,
+    "accuracy_m": 8,
+    "recorded_at": "2026-11-13T08:00:00Z"
+  }'
+```
+
+Response, `202 Accepted`:
+
+```json
+{
+    "status": "accepted"
+}
+```
+
+Invalid input returns `422 Unprocessable Entity` with Laravel's standard `message` and `errors` body, where `errors` is keyed by field name.
+
+A Postman collection with valid and invalid requests is in `.postman/`.
+
+## Tests and CI
+
+Run all tests inside the container:
+
+```bash
+docker compose exec app php artisan test --compact
+```
+
+Run one module, for example the simulator (no Kafka broker needed, it uses `Kafka::fake()`):
+
+```bash
+docker compose run --rm app php artisan test --compact Modules/LocationSimulator
+```
+
+Code style and static analysis:
+
+```bash
+docker compose exec app vendor/bin/pint
+docker compose exec app vendor/bin/phpstan analyse --memory-limit=1G
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests to `main` and on pushes to `main`. The jobs run in order, each one waiting for the previous to pass:
+
+1. Code style (Pint)
+2. Static analysis (Larastan)
+3. Security audit (`composer audit`)
+4. Tests (PHPUnit, with PostGIS and Redis service containers)
+
+## Roadmap
+
+Planned, not built yet:
+
+- **Customer trips:** a customer sends pickup and destination coordinates, the API returns an estimated price (base fare plus per-kilometre and per-minute rates), and the trip is stored with a status such as requested, assigned, in progress, completed.
+- **Driver matching:** find the nearest drivers to the pickup point with Redis geo search.
+- **Trip path storage:** save the points a driver actually followed during a trip in a relational database, and compare the estimate with the final price.
+- **`RouteProvider` interface:** first with straight-line interpolation, later swappable for a routing service such as OSRM.
+- **Monitoring:** Prometheus with a Redis exporter and Grafana for metrics. RedisInsight is already in the Compose file for browsing keys and values.
